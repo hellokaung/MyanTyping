@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" class="light">
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyanType - Burmese Typing Practice</title>
@@ -11,38 +11,734 @@
       tailwind.config = {
         darkMode: 'class',
         theme: {
-          extend: {}
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              myanmar: ['Padauk', 'sans-serif'],
+            }
+          }
         }
       }
     </script>
     
-    <!-- Google Fonts for Burmese (Padauk) -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-      body {
-        font-family: 'Inter', sans-serif;
+      body { font-family: 'Inter', sans-serif; }
+      
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+      .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+      
+      /* Blinking Cursor for active char */
+      .active-cursor {
+        animation: blink 1s step-end infinite;
+        border-right: 2px solid #ef4444;
       }
-      .font-myanmar {
-        font-family: 'Padauk', sans-serif;
-      }
+      @keyframes blink { 0%, 100% { border-color: transparent; } 50% { border-color: #ef4444; } }
     </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.0"
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0"
   }
 }
 </script>
 </head>
-  <body class="bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
-    <div id="root"></div>
-  </body>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition-colors duration-300 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20 transition-colors">
+        <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 font-bold text-xl tracking-tight text-zinc-900 dark:text-white cursor-pointer" onclick="app.showDashboard()">
+                <div class="bg-red-600 text-white p-1.5 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" ry="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M6 12h.001"/><path d="M10 12h.001"/><path d="M14 12h.001"/><path d="M18 12h.001"/><path d="M7 16h10"/></svg>
+                </div>
+                <span>MyanType</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-zinc-500 dark:text-zinc-400 hidden sm:block">Vanilla JS Version</span>
+                <button id="themeToggle" class="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800 transition-all">
+                    <!-- Sun Icon -->
+                    <svg id="iconSun" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    <!-- Moon Icon -->
+                    <svg id="iconMoon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-6">
+        
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboardView" class="max-w-5xl mx-auto animate-fade-in">
+            <div class="text-center mb-10 pt-4">
+                <h1 class="text-4xl font-extrabold text-zinc-900 dark:text-white mb-3 tracking-tight">Practice Burmese Typing</h1>
+                <p class="text-lg text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto">Improve your speed and accuracy with standard lessons.</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex justify-center mb-8">
+                <div class="bg-white dark:bg-zinc-900 p-1 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-800 inline-flex">
+                    <button onclick="app.switchTab('lessons')" id="tab-lessons" class="px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 bg-red-600 text-white shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Lessons
+                    </button>
+                    <button onclick="app.switchTab('create')" id="tab-create" class="px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Create
+                    </button>
+                    <button onclick="app.switchTab('analytics')" id="tab-analytics" class="px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg> Analytics
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 min-h-[400px]">
+                
+                <!-- LESSONS LIST -->
+                <div id="content-lessons">
+                    <div class="relative mb-6">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" id="searchInput" placeholder="Search lessons..." class="w-full pl-10 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400">
+                    </div>
+                    
+                    <div id="customLessonsContainer" class="mb-8 hidden">
+                        <h3 class="text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-4 flex items-center gap-2">
+                            <span class="w-2 h-6 bg-blue-500 rounded-full"></span> My Custom Lessons
+                        </h3>
+                        <div id="customLessonGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-zinc-800 dark:text-zinc-100 mb-4 flex items-center gap-2">
+                        <span class="w-2 h-6 bg-red-600 rounded-full"></span> Standard Lessons
+                    </h3>
+                    <div id="lessonGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Lessons injected here -->
+                    </div>
+                </div>
+
+                <!-- CREATE FORM -->
+                <div id="content-create" class="hidden max-w-2xl mx-auto space-y-6">
+                    <h3 class="text-xl font-bold text-zinc-800 dark:text-zinc-100">Create Custom Lesson</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Title</label>
+                        <input type="text" id="createTitle" class="w-full p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all" placeholder="My Practice Lesson">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Difficulty</label>
+                        <select id="createDifficulty" class="w-full p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-red-500 outline-none">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Content (Burmese)</label>
+                        <textarea id="createContent" rows="6" class="w-full p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all font-myanmar leading-loose" placeholder="Paste Burmese text here..."></textarea>
+                    </div>
+                    <button onclick="app.saveCustomLesson()" class="w-full bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 transition-colors shadow-lg shadow-red-200 dark:shadow-red-900/20">Save & Add to Library</button>
+                </div>
+
+                <!-- ANALYTICS -->
+                <div id="content-analytics" class="hidden space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-zinc-800 dark:text-zinc-100">Performance</h3>
+                        <button onclick="app.clearHistory()" class="text-red-500 text-sm hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Clear History
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                            <p class="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Total Tests</p>
+                            <p id="statTotal" class="text-3xl font-bold text-zinc-800 dark:text-zinc-100">0</p>
+                        </div>
+                        <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                            <p class="text-emerald-600 dark:text-emerald-400 text-sm font-medium">Avg Accuracy</p>
+                            <p id="statAccuracy" class="text-3xl font-bold text-emerald-800 dark:text-emerald-400">0%</p>
+                        </div>
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                            <p class="text-blue-600 dark:text-blue-400 text-sm font-medium">Best WPM</p>
+                            <p id="statWpm" class="text-3xl font-bold text-blue-800 dark:text-blue-400">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Simple CSS Chart -->
+                    <div class="mt-8">
+                        <h4 class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">Recent Progress (Last 10)</h4>
+                        <div id="historyChart" class="h-48 flex items-end gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-2">
+                            <!-- Bars injected via JS -->
+                            <div class="w-full h-full flex items-center justify-center text-zinc-400 text-sm">No history data available.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TYPING VIEW -->
+        <div id="typingView" class="hidden max-w-4xl mx-auto">
+            <div class="mb-6 flex items-center justify-between">
+                <button onclick="app.showDashboard()" class="flex items-center gap-2 text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 transition-colors font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Back
+                </button>
+                <h2 id="typingTitle" class="text-lg font-bold text-zinc-800 dark:text-zinc-100 font-myanmar">Lesson Title</h2>
+            </div>
+
+            <div class="flex flex-col gap-6">
+                <!-- Toolbar -->
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+                    <div class="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <svg class="text-zinc-500 dark:text-zinc-400 ml-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <button onclick="app.setTimeLimit(0)" class="time-btn px-3 py-1 text-sm font-medium rounded-md transition-all text-red-600 bg-white shadow-sm border border-zinc-200" data-time="0">Unlimited</button>
+                        <button onclick="app.setTimeLimit(15)" class="time-btn px-3 py-1 text-sm font-medium rounded-md transition-all text-zinc-500 hover:text-zinc-700" data-time="15">15s</button>
+                        <button onclick="app.setTimeLimit(30)" class="time-btn px-3 py-1 text-sm font-medium rounded-md transition-all text-zinc-500 hover:text-zinc-700" data-time="30">30s</button>
+                        <button onclick="app.setTimeLimit(60)" class="time-btn px-3 py-1 text-sm font-medium rounded-md transition-all text-zinc-500 hover:text-zinc-700" data-time="60">60s</button>
+                    </div>
+
+                    <div class="flex items-center gap-6">
+                        <div class="text-center min-w-[80px]">
+                            <p class="text-xs text-zinc-400 font-bold uppercase">Time</p>
+                            <p id="timerDisplay" class="text-2xl font-mono font-bold text-zinc-700 dark:text-zinc-200">0s</p>
+                        </div>
+                        <div class="w-px h-10 bg-zinc-200 dark:bg-zinc-700"></div>
+                        <div class="text-center">
+                            <p class="text-xs text-zinc-400 font-bold uppercase">WPM</p>
+                            <p id="liveWpm" class="text-2xl font-bold text-zinc-800 dark:text-zinc-200 w-16">0</p>
+                        </div>
+                        <div class="w-px h-10 bg-zinc-200 dark:bg-zinc-700"></div>
+                        <div class="text-center">
+                            <p class="text-xs text-zinc-400 font-bold uppercase">Accuracy</p>
+                            <p id="liveAcc" class="text-2xl font-bold text-emerald-500 w-16">100%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typing Area -->
+                <div class="flex flex-col shadow-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900">
+                    <div id="textDisplay" class="p-8 max-h-[40vh] overflow-y-auto bg-white dark:bg-zinc-900 text-justify leading-loose cursor-text select-none scroll-smooth" onclick="document.getElementById('hiddenInput').focus()">
+                        <!-- Spans generated here -->
+                    </div>
+                    <div class="bg-zinc-50 dark:bg-zinc-800/50 p-4 border-t border-zinc-100 dark:border-zinc-800">
+                        <input type="text" id="hiddenInput" autocomplete="off" class="w-full px-4 py-3 text-lg font-medium text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-myanmar placeholder:text-zinc-400" placeholder="Type here..." oninput="app.handleInput()" onpaste="return false">
+                    </div>
+                </div>
+                
+                <div class="flex justify-center">
+                    <button onclick="app.restartLesson()" class="flex items-center gap-2 px-6 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-full transition-all text-zinc-600 dark:text-zinc-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg> Restart
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="py-8 text-center text-zinc-400 dark:text-zinc-600 text-sm">
+        <p>&copy; 2024 MyanType. Vanilla JS Edition.</p>
+    </footer>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-sm w-full shadow-2xl border border-zinc-200 dark:border-zinc-700 transform transition-all scale-100">
+            <h2 id="modalTitle" class="text-2xl font-bold text-center mb-6 text-zinc-800 dark:text-zinc-100">Lesson Complete! 🎉</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/50">
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase mb-1">WPM</p>
+                    <p id="finalWpm" class="text-4xl font-bold text-emerald-700 dark:text-emerald-400">0</p>
+                </div>
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-center border border-blue-100 dark:border-blue-900/50">
+                    <p class="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase mb-1">Accuracy</p>
+                    <p id="finalAcc" class="text-4xl font-bold text-blue-700 dark:text-blue-400">0%</p>
+                </div>
+            </div>
+
+            <div id="finalTime" class="text-center mb-6 text-zinc-500 dark:text-zinc-400 font-medium">Time: 0s</div>
+
+            <div class="flex flex-col gap-3">
+                <button id="nextBtn" onclick="app.nextLesson()" class="hidden w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-lg shadow-red-200 dark:shadow-red-900/20 flex items-center justify-center gap-2">
+                    Next Lesson <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+                <div class="flex gap-3">
+                    <button onclick="app.restartLesson()" class="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl font-medium">Retry</button>
+                    <button onclick="app.showDashboard()" class="flex-1 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-xl font-medium">Home</button>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-xs text-zinc-400 text-center space-y-1 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <p>Enter to Next/Home</p>
+                <p>Alt + Enter to Retry</p>
+                <p>Ctrl + Alt + Enter to Home</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const BASIC_STORIES = Array.from({ length: 50 }, (_, i) => ({
+            id: `basic-${i+1}`, title: `Basic Story ${i+1}`, difficulty: 'easy',
+            content: ["မောင်မောင် ကျောင်းသွားသည်။ သူသည် စာကြိုးစားသည်။","လှလှသည် ဈေးသို့သွားသည်။ မုန့်ဝယ်သည်။","ဖေဖေသည် ရုံးသွားသည်။ မေမေသည် ချက်ပြုတ်သည်။","ညီမလေး ကစားနေသည်။ အရုပ်လေး လှသည်။","နေမင်းကြီး ထွက်လာပြီ။ အလင်းရောင် ရသည်။","လမင်းကြီး သာနေသည်။ ညအခါ လှသည်။","ကျောင်းသားများ စာကျက်ကြသည်။ ဆရာမ စာသင်သည်။","ခွေးလေး ဟောင်နေသည်။ ကြောင်လေး အိပ်နေသည်။","ငှက်ကလေးများ ပျံသန်းကြသည်။ သီချင်းဆိုကြသည်။","ပန်းကလေးများ လှပသည်။ အနံ့ မွှေးသည်။","ရေကူးရခြင်းသည် ကျန်းမာရေးအတွက် ကောင်းသည်။","သစ်သီးများ စားသုံးခြင်းသည် အားရှိစေသည်။","မိုးရွာလျှင် ထီးဆောင်းပါ။ ဖျားနာတတ်သည်။","လမ်းလျှောက်ခြင်းသည် ကောင်းသော လေ့ကျင့်ခန်း ဖြစ်သည်။","သူငယ်ချင်းများနှင့် ကစားရသည်မှာ ပျော်စရာ ကောင်းသည်။","ရိုးသားခြင်းသည် အကောင်းဆုံး ဂုဏ်ဖြစ်သည်။","အမှိုက်များကို အမှိုက်ပုံးထဲသို့ စွန့်ပစ်ပါ။","လက်ကို စင်ကြယ်စွာ ဆေးကြောပါ။","သွားများကို နေ့စဉ် တိုက်ပါ။","အိပ်ရာစောစောဝင်ပါ။ အိပ်ရာစောစောထပါ။","မိဘစကားကို နားထောင်ပါ။ ရိုသေပါ။","ဆရာသမားများကို လေးစားပါ။","စာအုပ်စာပေ လူမိတ်ဆွေ။","အချိန်ကို အကျိုးရှိစွာ အသုံးချပါ။","ကြိုးစားခြင်းသည် အောင်မြင်ခြင်း၏ လမ်းစဖြစ်သည်။","သည်းခံခြင်းသည် မြတ်သော အကျင့်ဖြစ်သည်။","ကူညီတတ်သော စိတ်ထား ရှိပါစေ။","ပြုံးပျော်ရွှင်သော မျက်နှာ ထားပါ။","စကားပြောလျှင် ယဉ်ကျေးစွာ ပြောပါ။","အလုပ်ကို ကြိုးစား လုပ်ကိုင်ပါ။","အမှန်တရားကိုသာ မြတ်နိုးပါ။","မုသား စကား မပြောရ။","သူတစ်ပါး ပစ္စည်းကို မခိုးရ။","ကျေးဇူးတရားကို သိတတ်ပါ။","မေတ္တာထားလျှင် အကျိုးရှိသည်။","ဒေါသကို ထိန်းချုပ်ပါ။","လောဘကို လျှော့ချပါ။","မာန မကြီးရ။","စိတ်ထား ဖြူစင်ပါစေ။","ကတိ တည်ပါစေ။","စည်းကမ်းကို လိုက်နာပါ။","တာဝန်ကို ကျေပွန်ပါ။","စာဖတ်ခြင်းသည် ဗဟုသုတ တိုးစေသည်။","ကျန်းမာခြင်းသည် လာဘ်တစ်ပါး။","စိတ်ပျော်ရွှင်မှုသည် အရေးကြီးသည်။","မိသားစုသည် အားကိုးရာ ဖြစ်သည်။","ညီညွတ်ခြင်းသည် အင်အား။","ငြိမ်းချမ်းရေးကို လိုလားပါ။","တိုင်းပြည်ကို ချစ်ပါ။","ဘာသာစကားကို ထိန်းသိမ်းပါ။"][i]
+        }));
+
+        const MEDIUM_STORIES = Array.from({ length: 50 }, (_, i) => ({
+            id: `medium-${i+1}`, title: `Medium Story ${i+1}`, difficulty: 'medium',
+            content: ["ရန်ကုန်မြို့သည် မြန်မာနိုင်ငံ၏ စီးပွားရေး မြို့တော်ဖြစ်ပြီး လူဦးရေ ထူထပ်သော မြို့ကြီးဖြစ်သည်။","မန္တလေးမြို့သည် မြန်မာမင်းများ နောက်ဆုံး နန်းစိုက်ခဲ့ရာ မြို့တော်ဟောင်း ဖြစ်သည်။ ယဉ်ကျေးမှု အမွေအနှစ်များ ပေါများသည်။","ပုဂံဒေသရှိ ရှေးဟောင်း ဘုရားပုထိုးများသည် ကမ္ဘာ့အမွေအနှစ် စာရင်းဝင် နေရာတစ်ခု ဖြစ်သည်။","အင်းလေးကန်သည် ရှမ်းပြည်နယ်တွင် တည်ရှိပြီး ခြေဖြင့် လှေလှော်သည့် ဓလေ့ကြောင့် ထင်ရှားကျော်ကြားသည်။","မြန်မာနိုင်ငံတွင် နွေ၊ မိုး၊ ဆောင်း ဟူ၍ ရာသီဥတု သုံးမျိုး ထင်ရှားစွာ ရှိသည်။","သင်္ကြန်ပွဲတော်သည် မြန်မာလူမျိုးတို့၏ အနှစ်သက်ဆုံးနှင့် အပျော်ရွှင်ဆုံး နှစ်သစ်ကူး ပွဲတော်ဖြစ်သည်။","သီတင်းကျွတ် လပြည့်နေ့တွင် ဘုရားကျောင်းကန်များ၌ ဆီမီးများ ထွန်းညှိ ပူဇော်ကြသည်။","တန်ဆောင်တိုင် ပွဲတော်တွင် မီးပုံးပျံများ လွှတ်တင်ခြင်းနှင့် ကထိန်သင်္ကန်း ဆက်ကပ်ခြင်းများ ပြုလုပ်ကြသည်။","မြန်မာ့ရိုးရာ အစားအစာများတွင် မုန့်ဟင်းခါး၊ အုန်းနို့ခေါက်ဆွဲနှင့် လက်ဖက်သုပ်တို့သည် လူကြိုက်များသည်။","မြန်မာစကားပုံများတွင် လူမှုရေး၊ စီးပွားရေးနှင့် ပတ်သက်သော ဆုံးမစာများစွာ ပါဝင်သည်။","ပညာရေးသည် နိုင်ငံတစ်နိုင်ငံ ဖွံ့ဖြိုးတိုးတက်ရေးအတွက် အဓိကကျသော အခန်းကဏ္ဍမှ ပါဝင်သည်။","နည်းပညာ ခေတ်ကြီးတွင် ကွန်ပျူတာနှင့် အင်တာနက် အသုံးပြုခြင်းသည် မရှိမဖြစ် လိုအပ်လာသည်။","သဘာဝ ပတ်ဝန်းကျင်ကို ထိန်းသိမ်းခြင်းသည် ကမ္ဘာကြီး ပူနွေးလာမှုကို ကာကွယ်နိုင်သည်။","သစ်ပင်များ စိုက်ပျိုးခြင်းဖြင့် လေထု သန့်ရှင်းစေပြီး ရာသီဥတုကို မျှတစေနိုင်သည်။","ကျန်းမာရေးနှင့် ညီညွတ်သော အစားအစာများကို ရွေးချယ် စားသုံးခြင်းသည် ရောဂါများကို ကာကွယ်နိုင်သည်။","ကိုယ်လက် လှုပ်ရှားမှု လေ့ကျင့်ခန်းများကို ပုံမှန် ပြုလုပ်ခြင်းဖြင့် ခန္ဓာကိုယ် ကြံ့ခိုင်စေသည်။","စာကြည့်တိုက်များသည် ဗဟုသုတ ရှာမှီးရာ ရတနာသိုက်ကြီးများ ဖြစ်ကြသည်။","ခရီးသွားလာခြင်းသည် ဒေသန္တရ ဗဟုသုတများကို ရရှိစေပြီး စိတ်ကို ကြည်နူးစေသည်။","မြန်မာ့ လက်မှုပညာများဖြစ်သော ပန်းချီ၊ ပန်းပု၊ ပန်းတမော့ ပညာရပ်များသည် အလွန် သိမ်မွေ့သည်။","ရွှေတိဂုံ စေတီတော်ကြီးသည် ရန်ကုန်မြို့၏ ကျက်သရေဆောင် ဖြစ်ပြီး ကမ္ဘာလှည့် ခရီးသည်များကို ဆွဲဆောင်လျက်ရှိသည်။","ကျိုက်ထီးရိုး စေတီတော်သည် မွန်ပြည်နယ်တွင် တည်ရှိပြီး ထူးခြားသော ကျောက်တုံးကြီးပေါ်တွင် တည်ထားသည်။","ငပလီ ကမ်းခြေသည် ရခိုင်ပြည်နယ်တွင် တည်ရှိသော အလွန်လှပသည့် အပန်းဖြေ စခန်းတစ်ခု ဖြစ်သည်။","ပုပ္ပါးတောင်သည် မီးငြိမ်းတောင် တစ်ခုဖြစ်ပြီး ဆေးဖက်ဝင် အပင်များ ပေါက်ရောက်ရာ ဒေသဖြစ်သည်။","ဧရာဝတီ မြစ်ကြီးသည် မြန်မာနိုင်ငံ၏ အသက်သွေးကြော ဖြစ်ပြီး မြောက်မှ တောင်သို့ စီးဆင်းသည်။","မြန်မာ့ ခြင်းလုံး အားကစားသည် ပူးပေါင်းဆောင်ရွက်မှုနှင့် စည်းလုံးမှုကို ဖော်ပြသော ကစားနည်း ဖြစ်သည်။","ရုပ်သေး ပညာသည် မြန်မာ့ရိုးရာ အနုပညာ တစ်ရပ်ဖြစ်ပြီး ကြိုးများဖြင့် ထိန်းချုပ် ကပြရသည်။","မြန်မာ့ ဆိုင်းဝိုင်းကြီးသည် ကမ္ဘာပေါ်တွင် ထူးခြားသော ဂီတ အဖွဲ့အစည်း တစ်ခုဖြစ်သည်။","မြန်မာ့ နှစ်သစ်ကူးတွင် သက်ကြီး ဝါကြီးများကို ကန်တော့ခြင်းသည် ကောင်းမြတ်သော ဓလေ့ဖြစ်သည်။","စာရိတ္တ ကောင်းမွန်ခြင်းသည် လူတစ်ယောက်၏ တန်ဖိုးကို မြှင့်တင်ပေးသည်။","လူငယ်များသည် တိုင်းပြည်၏ အနာဂတ် ဖြစ်သောကြောင့် ဗလငါးတန်နှင့် ပြည့်စုံရန် လိုအပ်သည်။","မူးယစ်ဆေးဝါးသည် လူညွန့်တုံးစေသော အရာဖြစ်သဖြင့် လုံးဝ ရှောင်ကြဉ်သင့်သည်။","ယာဉ်စည်းကမ်း လမ်းစည်းကမ်းများကို လိုက်နာခြင်းဖြင့် မတော်တဆမှုများကို လျှော့ချနိုင်သည်။","အင်တာနက်ကို အကျိုးရှိစွာ အသုံးချတတ်လျှင် ပညာဗဟုသုတများစွာ ရှာဖွေနိုင်သည်။","ဆိုရှယ်မီဒီယာကို သတိဖြင့် အသုံးပြုခြင်းသည် ကိုယ်ရေးကိုယ်တာ လုံခြုံမှုအတွက် အရေးကြီးသည်။","စီးပွားရေး လုပ်ငန်းများတွင် ရိုးသားမှုနှင့် တာဝန်ယူမှု ရှိခြင်းသည် အောင်မြင်မှု၏ သော့ချက်ဖြစ်သည်။","အချိန်တိကျမှုသည် လူတစ်ယောက်၏ ယုံကြည်စိတ်ချရမှုကို ဖော်ပြသည်။","အသင်းအဖွဲ့နှင့် လုပ်ကိုင်ဆောင်ရွက်ခြင်းသည် လုပ်ငန်းများကို ပိုမို တွင်ကျယ်စေသည်။","ခေါင်းဆောင်ကောင်း တစ်ယောက် ဖြစ်ရန်အတွက် ကိုယ်ချင်းစာ တရားနှင့် မျှော်မှန်းချက် ရှိရမည်။","အခက်အခဲများကို တွေ့ကြုံရသောအခါ စိတ်ဓာတ်မကျဘဲ ကြိုးစား ကျော်ဖြတ်သင့်သည်။","အောင်မြင်မှု ရရှိရန်အတွက် ဇွဲ၊ လုံ့လ၊ ဝီရိယ ရှိရန် လိုအပ်သည်။","ပျော်ရွှင်သော ဘဝကို ပိုင်ဆိုင်ရန် ရောင့်ရဲတတ်သော စိတ်ထား ရှိရမည်။","မေတ္တာတရားသည် ကမ္ဘာလောကကြီးကို အေးချမ်းစေသော လက်နက်ဖြစ်သည်။","ခွင့်လွှတ်ခြင်းသည် ရန်ငြိုးများကို ပြေပျောက်စေပြီး စိတ်ချမ်းသာမှုကို ပေးသည်။","ကူညီ ရိုင်းပင်းခြင်းသည် လူမှု အသိုင်းအဝိုင်းကို ပိုမို ခိုင်မာစေသည်။","ရိုးရာ ယဉ်ကျေးမှုများကို ထိန်းသိမ်းခြင်းသည် အမျိုးသားရေး တာဝန်တစ်ရပ် ဖြစ်သည်။","မိခင်ဘာသာစကားကို ကျွမ်းကျင်စွာ တတ်မြောက်ခြင်းသည် ဂုဏ်ယူစရာ ဖြစ်သည်။","ကမ္ဘာကြီးကို ငြိမ်းချမ်းစေချင်လျှင် ကိုယ်တိုင် ငြိမ်းချမ်းအောင် နေထိုင်ရမည်။","သစ္စာတရားသည် မိတ်ဆွေစစ်ကို ရရှိစေနိုင်သည်။","ကျေးဇူးတင်တတ်ခြင်းသည် မင်္ဂလာတစ်ပါး ဖြစ်သည်။","ကရုဏာထားတတ်ခြင်းသည် အကျိုးတရားတစ်ပါး ဖြစ်သည်။"][i]
+        }));
+
+        const HARD_STORIES = Array.from({ length: 50 }, (_, i) => ({
+            id: `hard-${i+1}`, title: `Hard Story ${i+1}`, difficulty: 'hard',
+            content: ["အနိစ္စ၊ ဒုက္ခ၊ အနတ္တ ဟူသော လက္ခဏာရေး သုံးပါးကို ဆင်ခြင် သုံးသပ်ခြင်းသည် ဝိပဿနာ ဉာဏ်ကို ရရှိစေနိုင်သော အခြေခံ အကြောင်းတရား ဖြစ်သည်။","ပဋိစ္စသမုပ္ပါဒ် သဘောတရားသည် အကြောင်းနှင့် အကျိုး ဆက်စပ် ဖြစ်ပေါ်လာပုံကို ရှင်းလင်းစွာ ပြသထားသော ဗုဒ္ဓ၏ ဒေသနာတော် ဖြစ်သည်။","ဗြဟ္မစိုရ်တရား လေးပါးဖြစ်သော မေတ္တာ၊ ဂရုဏာ၊ မုဒိတာ၊ ဥပေက္ခာ တို့ကို လက်ကိုင်ထား ကျင့်သုံးခြင်းသည် မြင့်မြတ်သော ပုဂ္ဂိုလ်တို့၏ လမ်းစဉ်ဖြစ်သည်။","မြန်မာ့ သမိုင်းကြောင်းကို လေ့လာကြည့်လျှင် ရှေးမြန်မာ ဘုရင်များ၏ စွမ်းရည်သတ္တိနှင့် နိုင်ငံချစ်စိတ်ကို အားကျဖွယ် တွေ့မြင်ရမည် ဖြစ်သည်။","ပထဝီဝင် အနေအထားအရ မြန်မာနိုင်ငံသည် အရှေ့တောင်အာရှ၏ မဟာဗျူဟာကျသော နေရာတွင် တည်ရှိနေခြင်းက နိုင်ငံရေးနှင့် စီးပွားရေးအရ အရေးပါစေသည်။","စီးပွားရေး ဖွံ့ဖြိုးတိုးတက်မှုနှင့်အတူ သဘာဝ ပတ်ဝန်းကျင် ထိန်းသိမ်းရေးကို ဟန်ချက်ညီညီ ဆောင်ရွက်ခြင်းသည် ရေရှည် တည်တံ့ခိုင်မြဲသော ဖွံ့ဖြိုးမှုကို ဖြစ်ပေါ်စေသည်။","ဒီမိုကရေစီ စနစ်တွင် နိုင်ငံသားတိုင်း၏ အခွင့်အရေးနှင့် တာဝန်များကို လေးစားလိုက်နာခြင်းသည် နိုင်ငံတော် တည်ငြိမ်အေးချမ်းရေးအတွက် အဓိက ကျသည်။","သတင်း အချက်အလက် နည်းပညာများ လျင်မြန်စွာ တိုးတက်ပြောင်းလဲလာမှုသည် လူသားတို့၏ နေထိုင်မှု ဘဝပုံစံကို များစွာ ပြောင်းလဲစေခဲ့သည်။","ကမ္ဘာ့ စီးပွားရေး ကျဆင်းမှု ဂယက်သည် ဖွံ့ဖြိုးဆဲ နိုင်ငံများအပေါ်တွင်လည်း ရိုက်ခတ်မှုများ ရှိနေသဖြင့် ကြိုတင် ပြင်ဆင်မှုများ ပြုလုပ်ထားရန် လိုအပ်သည်။","ရာသီဥတု ပြောင်းလဲမှု ဖြစ်စဉ်များသည် စိုက်ပျိုးရေး လုပ်ငန်းများကို ထိခိုက်စေနိုင်သဖြင့် တောင်သူလယ်သမားများအတွက် နည်းပညာ အကူအညီများ လိုအပ်လျက်ရှိသည်။","နိုင်ငံတကာ ဆက်ဆံရေးတွင် သံတမန် နည်းလမ်းများသည် ပဋိပက္ခများကို ဖြေရှင်းရာ၌ အထိရောက်ဆုံးသော လက်နက်သဖွယ် အသုံးပြုကြသည်။","လူ့အခွင့်အရေး ကြေညာစာတမ်းပါ အချက်အလက်များကို လေးစား လိုက်နာခြင်းသည် ကမ္ဘာ့ ငြိမ်းချမ်းရေးကို တည်ဆောက်ရာတွင် အထောက်အကူ ပြုသည်။","ဉာဏ်ရည်တု နည်းပညာ (Artificial Intelligence) ဖွံ့ဖြိုးလာမှုသည် ကဏ္ဍစုံတွင် အပြောင်းအလဲများကို ဖန်တီးပေးလျက်ရှိသည်။","ပညာရေး စနစ်သစ်တွင် ဝေဖန်ပိုင်းခြား တွေးခေါ်နိုင်စွမ်းနှင့် တီထွင်ဖန်တီးနိုင်စွမ်းတို့ကို ဦးစားပေး သင်ကြားပေးခြင်းက အရေးကြီးသည်။","ကျန်းမာရေး စောင့်ရှောက်မှု စနစ်များ ခေတ်မီ တိုးတက်လာခြင်းကြောင့် လူတို့၏ သက်တမ်းစေ့ နေထိုင်နိုင်မှုနှုန်းသည် မြင့်တက်လာသည်။","စွန့်ဦးတီထွင် လုပ်ငန်းရှင်များသည် စိန်ခေါ်မှုများကို ရင်ဆိုင်ကျော်ဖြတ်ပြီး ဆန်းသစ်သော ထုတ်ကုန်များကို ဖန်တီးကာ စီးပွားရေးကို မြှင့်တင်ကြသည်။","ယဉ်ကျေးမှု ဖလှယ်ခြင်း အစီအစဉ်များသည် နိုင်ငံအချင်းချင်းအကြား နားလည်မှုနှင့် ချစ်ကြည်ရင်းနှီးမှုကို တိုးပွားစေနိုင်သည်။","ခေတ်မီ ဆက်သွယ်ရေး စနစ်များသည် ကမ္ဘာကြီးကို ရွာငယ်လေး တစ်ရွာသဖွယ် ဖြစ်လာစေပြီး သတင်းအချက်အလက် စီးဆင်းမှုကို မြန်ဆန်စေသည်။","ပြန်လည် ပြည့်ဖြိုးမြဲ စွမ်းအင်များကို အသုံးပြုခြင်းသည် လောင်စာဆီ သုံးစွဲမှုကို လျှော့ချပေးပြီး သဘာဝ ပတ်ဝန်းကျင်ကို ကာကွယ်ရာ ရောက်သည်။","ရှေးဟောင်း ယဉ်ကျေးမှု အမွေအနှစ်များကို ထိန်းသိမ်း စောင့်ရှောက်ခြင်းသည် မျိုးဆက်သစ်များအတွက် သမိုင်းတန်ဖိုးကို လက်ဆင့်ကမ်း ပေးခြင်းဖြစ်သည်။","သုတေသန လုပ်ငန်းများသည် နိုင်ငံတစ်နိုင်ငံ၏ တိုးတက်မှုကို အထောက်အကူ ပြုသော တီထွင်မှုများနှင့် တွေ့ရှိချက်များကို ဖော်ထုတ်ပေးသည်။","ဘဏ္ဍာရေး စီမံခန့်ခွဲမှု ကောင်းမွန်ခြင်းသည် လူတစ်ဦးချင်းစီ၏ စီးပွားရေး တည်ငြိမ်မှုသာမက နိုင်ငံတော်၏ စီးပွားရေးကိုပါ အားကောင်းစေသည်။","ဥပဒေ စိုးမိုးရေးသည် တရားမျှတသော လူ့ဘောင်အဖွဲ့အစည်း တစ်ခုကို တည်ဆောက်ရာတွင် မရှိမဖြစ် လိုအပ်သော အခြေခံ အုတ်မြစ်ဖြစ်သည်။","စာပေ အနုပညာသည် လူတို့၏ စိတ်နှလုံးကို နူးညံ့စေပြီး ယဉ်ကျေးမှု အဆင့်အတန်းကို မြှင့်တင်ပေးသော စွမ်းအားတစ်ရပ် ဖြစ်သည်။","စိတ်ပညာ သဘောတရားများကို နားလည်ခြင်းသည် လူမှုဆက်ဆံရေး နယ်ပယ်တွင် အောင်မြင်မှု ရရှိရန် များစွာ အထောက်အကူ ပြုသည်။","ဒဿနိကဗေဒသည် လူသားတို့၏ တွေးခေါ်မှုကို ကျယ်ပြန့်စေပြီး အမှန်တရားကို ရှာဖွေရာတွင် လမ်းပြပေးသော ပညာရပ်ဖြစ်သည်။","နက္ခတ္တဗေဒ ပညာရပ်သည် စကြဝဠာကြီး၏ လျှို့ဝှက်ချက်များကို လေ့လာစူးစမ်းပြီး လူသားတို့၏ အသိဉာဏ်ကို ဖွံ့ဖြိုးစေသည်။","ရူပဗေဒ သဘောတရားများသည် သဘာဝ တရား၏ ဖြစ်ပျက်မှုများကို ရှင်းပြပေးနိုင်ပြီး နည်းပညာ တိုးတက်မှု၏ အခြေခံလည်း ဖြစ်သည်။","ဓာတုဗေဒ ပညာရပ်သည် ဒြပ်ပစ္စည်းများ၏ ဖွဲ့စည်းပုံနှင့် ပြောင်းလဲမှုများကို လေ့လာပြီး ဆေးဝါးနှင့် စက်မှု လုပ်ငန်းများတွင် အသုံးဝင်သည်။","ဇီဝဗေဒ ပညာရပ်သည် သက်ရှိများ၏ ဖွဲ့စည်းပုံနှင့် လုပ်ငန်းစဉ်များကို လေ့လာပြီး ကျန်းမာရေးနှင့် စိုက်ပျိုးရေး ကဏ္ဍများတွင် အရေးပါသည်။","သမိုင်း ပညာရပ်သည် အတိတ်ကာလက ဖြစ်ရပ်များကို သင်ခန်းစာ ယူပြီး အနာဂတ်ကို ပိုမို ကောင်းမွန်အောင် တည်ဆောက်ရန် ကူညီပေးသည်။","ပထဝီဝင် ပညာရပ်သည် ကမ္ဘာမြေကြီး၏ အနေအထားနှင့် သယံဇာတများကို လေ့လာပြီး ဒေသဖွံ့ဖြိုးရေး စီမံကိန်းများအတွက် အရေးပါသည်။","ဘောဂဗေဒ ပညာရပ်သည် အကန့်အသတ်ရှိသော အရင်းအမြစ်များကို အကျိုးရှိစွာ ခွဲဝေသုံးစွဲနည်းကို လေ့လာသော ပညာရပ်ဖြစ်သည်။","နိုင်ငံရေး သိပ္ပံသည် နိုင်ငံတော် အုပ်ချုပ်ရေးနှင့် အစိုးရစနစ်များကို လေ့လာပြီး နိုင်ငံရေး တည်ငြိမ်မှုကို ဖော်ဆောင်ရန် ကူညီပေးသည်။","လူမှုဗေဒ ပညာရပ်သည် လူ့အဖွဲ့အစည်း၏ ဖွဲ့စည်းပုံနှင့် ပြောင်းလဲမှုများကို လေ့လာပြီး လူမှုရေး ပြဿနာများကို ဖြေရှင်းရန် နည်းလမ်း ရှာဖွေသည်။","စိတ်ကျန်းမာရေးသည် ရုပ်ပိုင်းဆိုင်ရာ ကျန်းမာရေး ကဲ့သို့ပင် အရေးကြီးပြီး စိတ်ဖိစီးမှုများကို လျှော့ချရန် နည်းလမ်းများ ရှာဖွေသင့်သည်။","ကိုယ်ကျင့်တရား ကောင်းမွန်ခြင်းသည် လူ့တန်ဖိုးကို ဆုံးဖြတ်ပေးသော အဓိက စံနှုန်းဖြစ်ပြီး လူ့ဘောင်ကို အလှဆင်ပေးသည်။","စေတနာသည် ကံ၏ အကျိုးပေးကို ဖန်တီးပေးသော အဓိက အကြောင်းတရား ဖြစ်သဖြင့် ကောင်းသော စေတနာထားရန် အရေးကြီးသည်။","ကုသိုလ်ကံနှင့် အကုသိုလ်ကံတို့၏ အကျိုးပေးပုံကို ယုံကြည်ခြင်းသည် ဗုဒ္ဓဘာသာဝင်တို့၏ အခြေခံ သက်ဝင်ယုံကြည်မှု ဖြစ်သည်။","နိဗ္ဗာန်သည် ဆင်းရဲဒုက္ခ အပေါင်းမှ ကင်းလွတ်ရာ ဖြစ်ပြီး ဗုဒ္ဓဘာသာဝင်တို့၏ အန္တိမ ပန်းတိုင် ဖြစ်သည်။","တရားထိုင်ခြင်းသည် စိတ်ကို တည်ငြိမ်စေပြီး သတိတရားကို အားကောင်းစေသဖြင့် နေ့စဉ်ဘဝတွင် အကျိုးရှိစေသည်။","မိဘကျေးဇူး ဆပ်ခြင်းသည် သားသမီးတို့၏ တာဝန်ဖြစ်ပြီး မင်္ဂလာတရားတော်နှင့်အညီ နေထိုင်ခြင်းလည်း ဖြစ်သည်။","ဆရာသမားတို့၏ ဆိုဆုံးမမှုကို နာခံခြင်းသည် ပညာတတ်ကြီး ဖြစ်လာစေရန် အထောက်အကူ ပြုသော အကြောင်းတရား ဖြစ်သည်။","မိတ်ကောင်း ဆွေကောင်းတို့နှင့် ပေါင်းသင်းခြင်းသည် ကြီးပွား တိုးတက်ခြင်း၏ အကြောင်းရင်း တစ်ရပ် ဖြစ်သည်။","အရက်သေစာ သောက်စားခြင်းသည် ကျန်းမာရေးကို ထိခိုက်စေပြီး စီးပွားရေးကိုလည်း ပျက်စီးစေနိုင်သည်။","လောင်းကစားခြင်းသည် မိမိနှင့် မိသားစုကို ဒုက္ခရောက်စေနိုင်သဖြင့် လုံးဝ ရှောင်ကြဉ်သင့်သော အပြုအမူ ဖြစ်သည်။","သူတစ်ပါး၏ အသက်ကို သတ်ဖြတ်ခြင်းသည် ကြီးလေးသော အကုသိုလ်ကံ ဖြစ်သဖြင့် မေတ္တာထား၍ ရှောင်ကြဉ်သင့်သည်။","မမှန်သော စကားကို ပြောဆိုခြင်းသည် ယုံကြည်မှုကို ပျက်ပြားစေပြီး ဂုဏ်သိက္ခာကို ကျဆင်းစေနိုင်သည်။","သူတစ်ပါး သားမယားကို ပြစ်မှားခြင်းသည် လူမှုရေး ပြဿနာများကို ဖြစ်ပေါ်စေပြီး အကျင့်စာရိတ္တ ပျက်ပြားမှုကို ဖြစ်စေသည်။","မူးယစ် ရီဝေစေသော အရာများကို သုံးစွဲခြင်းသည် သတိတရားကို ကင်းမဲ့စေပြီး ဒုက္ခအပေါင်းနှင့် တွေ့ကြုံစေနိုင်သည်။"][i]
+        }));
+
+        const DEFAULT_LESSONS = [...BASIC_STORIES, ...MEDIUM_STORIES, ...HARD_STORIES];
+
+        // --- APP LOGIC ---
+        const app = {
+            state: {
+                currentLesson: null,
+                input: "",
+                startTime: null,
+                timerInterval: null,
+                timeLimit: 0,
+                timeLeft: 0,
+                elapsed: 0,
+                isFinished: false,
+                theme: 'system'
+            },
+
+            init() {
+                this.loadTheme();
+                this.renderLessons();
+                this.updateThemeIcon();
+                document.getElementById('searchInput').addEventListener('input', (e) => this.renderLessons(e.target.value));
+            },
+
+            // --- NAVIGATION ---
+            switchTab(tab) {
+                document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                    if (el.id === `tab-${tab}`) {
+                        el.classList.remove('text-zinc-500', 'bg-white', 'dark:text-zinc-400');
+                        el.classList.add('bg-red-600', 'text-white', 'shadow-md');
+                    } else {
+                        el.classList.add('text-zinc-500', 'dark:text-zinc-400');
+                        el.classList.remove('bg-red-600', 'text-white', 'shadow-md');
+                    }
+                });
+                
+                document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
+                document.getElementById(`content-${tab}`).classList.remove('hidden');
+
+                if (tab === 'analytics') this.renderAnalytics();
+                if (tab === 'lessons') this.renderLessons(document.getElementById('searchInput').value);
+            },
+
+            showDashboard() {
+                this.resetLessonState();
+                document.getElementById('dashboardView').classList.remove('hidden');
+                document.getElementById('typingView').classList.add('hidden');
+                document.getElementById('resultModal').classList.add('hidden');
+                document.getElementById('resultModal').classList.remove('flex');
+            },
+
+            showTypingArea(lesson) {
+                this.state.currentLesson = lesson;
+                document.getElementById('dashboardView').classList.add('hidden');
+                document.getElementById('typingView').classList.remove('hidden');
+                document.getElementById('typingTitle').textContent = lesson.title;
+                this.restartLesson();
+            },
+            
+            resetLessonState() {
+                clearInterval(this.state.timerInterval);
+                this.state.timerInterval = null;
+                this.state.input = "";
+                this.state.startTime = null;
+                this.state.isFinished = false;
+                this.state.currentLesson = null;
+            },
+
+            // --- LESSON RENDERER ---
+            renderLessons(search = "") {
+                const grid = document.getElementById('lessonGrid');
+                grid.innerHTML = "";
+                
+                const term = search.toLowerCase();
+                const filtered = DEFAULT_LESSONS.filter(l => l.title.toLowerCase().includes(term) || l.content.includes(term));
+                
+                // Render Standard
+                filtered.forEach(lesson => {
+                    const card = this.createLessonCard(lesson);
+                    grid.appendChild(card);
+                });
+
+                // Render Custom
+                const customContainer = document.getElementById('customLessonsContainer');
+                const customGrid = document.getElementById('customLessonGrid');
+                const customLessons = JSON.parse(localStorage.getItem('myantype_custom_lessons') || '[]');
+                
+                if (customLessons.length > 0) {
+                    customContainer.classList.remove('hidden');
+                    customGrid.innerHTML = "";
+                    customLessons.forEach(lesson => {
+                        customGrid.appendChild(this.createLessonCard(lesson));
+                    });
+                } else {
+                    customContainer.classList.add('hidden');
+                }
+            },
+
+            createLessonCard(lesson) {
+                const div = document.createElement('button');
+                div.className = "group text-left p-5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:border-red-500 dark:hover:border-red-500 hover:shadow-md transition-all bg-zinc-50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-800";
+                
+                const badgeColor = lesson.difficulty === 'easy' ? 'emerald' : lesson.difficulty === 'medium' ? 'amber' : 'red';
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-semibold text-zinc-700 dark:text-zinc-200 font-myanmar truncate pr-2">${lesson.title}</span>
+                        <span class="text-xs px-2 py-1 rounded-full uppercase font-bold tracking-wider shrink-0 bg-${badgeColor}-100 text-${badgeColor}-700 dark:bg-${badgeColor}-900/30 dark:text-${badgeColor}-400">${lesson.difficulty}</span>
+                    </div>
+                    <p class="text-zinc-500 dark:text-zinc-400 text-sm line-clamp-2 font-myanmar opacity-70 group-hover:opacity-100 transition-opacity">${lesson.content}</p>
+                `;
+                div.onclick = () => this.showTypingArea(lesson);
+                return div;
+            },
+
+            saveCustomLesson() {
+                const title = document.getElementById('createTitle').value;
+                const diff = document.getElementById('createDifficulty').value;
+                const content = document.getElementById('createContent').value;
+                
+                if (!title || !content) return alert("Please fill all fields");
+
+                const newLesson = { id: Date.now().toString(), title, difficulty: diff, content, source: 'custom' };
+                const existing = JSON.parse(localStorage.getItem('myantype_custom_lessons') || '[]');
+                localStorage.setItem('myantype_custom_lessons', JSON.stringify([...existing, newLesson]));
+                
+                // Clear form
+                document.getElementById('createTitle').value = "";
+                document.getElementById('createContent').value = "";
+                this.switchTab('lessons');
+            },
+
+            // --- TYPING LOGIC ---
+            setTimeLimit(seconds) {
+                this.state.timeLimit = seconds;
+                
+                // Update UI buttons
+                document.querySelectorAll('.time-btn').forEach(btn => {
+                    const t = parseInt(btn.dataset.time);
+                    if (t === seconds) {
+                        btn.className = "time-btn px-3 py-1 text-sm font-medium rounded-md transition-all text-red-600 bg-white dark:bg-zinc-700 shadow-sm border border-zinc-200 dark:border-zinc-600 dark:text-red-400";
+                    } else {
+                        btn.className = "time-btn px-3 py-1 text-sm font-medium rounded-md transition-all text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200";
+                    }
+                });
+                
+                this.restartLesson();
+            },
+
+            restartLesson() {
+                clearInterval(this.state.timerInterval);
+                this.state.input = "";
+                this.state.startTime = null;
+                this.state.isFinished = false;
+                this.state.elapsed = 0;
+                this.state.timeLeft = this.state.timeLimit;
+                
+                document.getElementById('hiddenInput').value = "";
+                document.getElementById('hiddenInput').disabled = false;
+                document.getElementById('hiddenInput').focus();
+                
+                document.getElementById('liveWpm').textContent = "0";
+                document.getElementById('liveAcc').textContent = "100%";
+                document.getElementById('timerDisplay').textContent = this.state.timeLimit > 0 ? `${this.state.timeLimit}s` : "0s";
+                
+                document.getElementById('resultModal').classList.remove('flex');
+                document.getElementById('resultModal').classList.add('hidden');
+
+                this.renderText();
+                
+                // Scroll top
+                document.getElementById('textDisplay').scrollTop = 0;
+            },
+
+            renderText() {
+                const display = document.getElementById('textDisplay');
+                const text = this.state.currentLesson.content;
+                const input = this.state.input;
+                
+                let html = '';
+                for (let i = 0; i < text.length; i++) {
+                    let className = "text-2xl md:text-3xl leading-relaxed transition-colors duration-100 font-medium font-myanmar ";
+                    
+                    if (i < input.length) {
+                        if (input[i] === text[i]) {
+                            className += "text-emerald-600 dark:text-emerald-400";
+                        } else {
+                            className += "text-red-500 bg-red-100/50 dark:bg-red-900/50 rounded";
+                        }
+                    } else if (i === input.length) {
+                        className += "active-cursor bg-blue-100 dark:bg-blue-900/40 text-zinc-900 dark:text-white";
+                    } else {
+                        className += "text-zinc-300 dark:text-zinc-600";
+                    }
+                    html += `<span id="char-${i}" class="${className}">${text[i]}</span>`;
+                }
+                display.innerHTML = html;
+            },
+
+            handleInput() {
+                if (this.state.isFinished) return;
+                
+                const val = document.getElementById('hiddenInput').value;
+                const text = this.state.currentLesson.content;
+                
+                // Start timer on first char
+                if (!this.state.startTime && val.length > 0) {
+                    this.state.startTime = Date.now();
+                    this.startTimer();
+                }
+
+                // Prevent typing past length in unlimited
+                if (val.length > text.length) {
+                    document.getElementById('hiddenInput').value = this.state.input;
+                    return;
+                }
+
+                this.state.input = val;
+                this.renderText();
+                this.updateLiveStats();
+                this.autoScroll(val.length);
+
+                if (val.length === text.length) {
+                    this.finishLesson();
+                }
+            },
+
+            autoScroll(idx) {
+                const charEl = document.getElementById(`char-${idx}`);
+                const container = document.getElementById('textDisplay');
+                if (charEl && container) {
+                    const charRect = charEl.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    
+                    if (charRect.bottom > containerRect.bottom - 40 || charRect.top < containerRect.top + 40) {
+                        charEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            },
+
+            startTimer() {
+                this.state.timerInterval = setInterval(() => {
+                    const now = Date.now();
+                    const diff = (now - this.state.startTime) / 1000;
+                    
+                    if (this.state.timeLimit > 0) {
+                        this.state.timeLeft = Math.max(0, Math.ceil(this.state.timeLimit - diff));
+                        document.getElementById('timerDisplay').textContent = `${this.state.timeLeft}s`;
+                        if (this.state.timeLeft <= 0) this.finishLesson();
+                    } else {
+                        this.state.elapsed = Math.floor(diff);
+                        document.getElementById('timerDisplay').textContent = this.formatTime(this.state.elapsed);
+                    }
+                    this.updateLiveStats();
+                }, 100);
+            },
+
+            updateLiveStats() {
+                const input = this.state.input;
+                const text = this.state.currentLesson.content;
+                
+                // Accuracy
+                let correct = 0;
+                for(let i=0; i<input.length; i++) if(input[i] === text[i]) correct++;
+                const acc = input.length > 0 ? Math.round((correct / input.length) * 100) : 100;
+                
+                // WPM
+                const timeInMins = (this.state.timeLimit > 0 ? (this.state.timeLimit - this.state.timeLeft) : this.state.elapsed) / 60;
+                // Avoid divide by zero for very start
+                const safeTime = Math.max(timeInMins, 0.001); 
+                const wpm = Math.round((input.length / 5) / safeTime);
+
+                document.getElementById('liveWpm').textContent = wpm;
+                document.getElementById('liveAcc').textContent = `${acc}%`;
+                
+                return { wpm, acc };
+            },
+
+            finishLesson() {
+                if (this.state.isFinished) return;
+                this.state.isFinished = true;
+                clearInterval(this.state.timerInterval);
+                document.getElementById('hiddenInput').disabled = true;
+
+                const stats = this.updateLiveStats();
+                
+                // Save Result
+                const result = {
+                    date: new Date().toISOString(),
+                    wpm: stats.wpm,
+                    accuracy: stats.acc,
+                    lessonId: this.state.currentLesson.id
+                };
+                const results = JSON.parse(localStorage.getItem('myantype_results') || '[]');
+                localStorage.setItem('myantype_results', JSON.stringify([result, ...results]));
+
+                // Show Modal
+                const modal = document.getElementById('resultModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                
+                document.getElementById('finalWpm').textContent = stats.wpm;
+                document.getElementById('finalAcc').textContent = `${stats.acc}%`;
+                document.getElementById('finalTime').textContent = `Time: ${this.state.timeLimit > 0 ? (this.state.timeLimit - this.state.timeLeft) : this.formatTime(this.state.elapsed)}`;
+                
+                // Check next lesson
+                const idx = DEFAULT_LESSONS.findIndex(l => l.id === this.state.currentLesson.id);
+                const nextBtn = document.getElementById('nextBtn');
+                if (idx !== -1 && idx < DEFAULT_LESSONS.length - 1) {
+                    nextBtn.classList.remove('hidden');
+                    nextBtn.onclick = () => this.nextLesson(DEFAULT_LESSONS[idx + 1]);
+                } else {
+                    nextBtn.classList.add('hidden');
+                }
+
+                // Keyboard shortcuts logic
+                this.bindModalShortcuts(idx);
+            },
+
+            bindModalShortcuts(currentIdx) {
+                const handler = (e) => {
+                     if (!document.getElementById('resultModal').classList.contains('hidden')) {
+                         if (e.key === 'Enter') {
+                             if (e.altKey && e.ctrlKey) { this.showDashboard(); }
+                             else if (e.altKey) { this.restartLesson(); }
+                             else {
+                                 if (currentIdx !== -1 && currentIdx < DEFAULT_LESSONS.length - 1) {
+                                     this.nextLesson(DEFAULT_LESSONS[currentIdx + 1]);
+                                 } else {
+                                     this.showDashboard();
+                                 }
+                             }
+                             window.removeEventListener('keydown', handler);
+                         }
+                     }
+                };
+                window.addEventListener('keydown', handler);
+            },
+
+            nextLesson(lesson) {
+                if (lesson) {
+                    this.showTypingArea(lesson);
+                }
+            },
+
+            formatTime(secs) {
+                const m = Math.floor(secs / 60);
+                const s = secs % 60;
+                return m > 0 ? `${m}m ${s}s` : `${s}s`;
+            },
+
+            // --- ANALYTICS ---
+            renderAnalytics() {
+                const results = JSON.parse(localStorage.getItem('myantype_results') || '[]');
+                
+                document.getElementById('statTotal').textContent = results.length;
+                const avgAcc = results.length ? Math.round(results.reduce((a,b)=>a+b.accuracy,0)/results.length) : 0;
+                document.getElementById('statAccuracy').textContent = `${avgAcc}%`;
+                const bestWpm = results.length ? Math.max(...results.map(r=>r.wpm)) : 0;
+                document.getElementById('statWpm').textContent = bestWpm;
+
+                // Simple CSS Chart
+                const chart = document.getElementById('historyChart');
+                chart.innerHTML = '';
+                if (results.length === 0) {
+                     chart.innerHTML = '<div class="w-full h-full flex items-center justify-center text-zinc-400 text-sm">No history data available.</div>';
+                     return;
+                }
+                
+                // Take last 10
+                const recent = results.slice(0, 10).reverse();
+                const maxVal = Math.max(...recent.map(r => r.wpm), 50); // Min scale 50
+                
+                recent.forEach(r => {
+                    const h = (r.wpm / maxVal) * 100;
+                    const bar = document.createElement('div');
+                    bar.className = "flex-1 bg-red-500 rounded-t hover:bg-red-600 transition-colors relative group";
+                    bar.style.height = `${h}%`;
+                    bar.innerHTML = `
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-zinc-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10">
+                            ${r.wpm} WPM | ${r.accuracy}%
+                        </div>
+                    `;
+                    chart.appendChild(bar);
+                });
+            },
+            
+            clearHistory() {
+                if(confirm("Delete all practice history?")) {
+                    localStorage.removeItem('myantype_results');
+                    this.renderAnalytics();
+                }
+            },
+
+            // --- THEME ---
+            loadTheme() {
+                const t = localStorage.getItem('myantype_theme') || 'system';
+                this.setTheme(t);
+            },
+            
+            setTheme(t) {
+                this.state.theme = t;
+                localStorage.setItem('myantype_theme', t);
+                const root = document.documentElement;
+                
+                if (t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    root.classList.add('dark');
+                } else {
+                    root.classList.remove('dark');
+                }
+                this.updateThemeIcon();
+            },
+
+            toggleTheme() {
+                const next = this.state.theme === 'light' ? 'dark' : this.state.theme === 'dark' ? 'system' : 'light';
+                this.setTheme(next);
+            },
+
+            updateThemeIcon() {
+                const btn = document.getElementById('themeToggle');
+                const sun = document.getElementById('iconSun');
+                const moon = document.getElementById('iconMoon');
+                
+                // Simple logic: if effectively dark, show Moon as active state, else Sun
+                const isDark = document.documentElement.classList.contains('dark');
+                if (isDark) {
+                    sun.classList.add('hidden');
+                    moon.classList.remove('hidden');
+                } else {
+                    sun.classList.remove('hidden');
+                    moon.classList.add('hidden');
+                }
+                btn.title = `Theme: ${this.state.theme}`;
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => app.init());
+        document.getElementById('themeToggle').onclick = () => app.toggleTheme();
+    </script>
+</body>
 </html>
