@@ -4,8 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyanType - Burmese Typing Practice</title>
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1188/1188519.png" type="image/x-icon">
-    
+    <meta name="theme-color" content="#10b981"/>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyanTyping">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1188/1188519.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1188/1188519.png">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1188/1188519.png" sizes="512x512">
+
+  <!-- Manifest (PWA ရဲ့ အဓိက ဖိုင်) -->
+  <link rel="manifest" href="./manifest.json">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -284,7 +293,15 @@
             </div>
         </div>
     </div>
-
+<script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW registered'))
+          .catch(err => console.log('SW registration failed: ', err));
+      });
+    }
+  </script>
     <script>
         // --- DATA ---
         const BASIC_STORIES = Array.from({ length: 50 }, (_, i) => ({
